@@ -180,7 +180,6 @@ export default function Dashboard() {
             .replace(/[\[\]"']/g, "")
             .split(",")
             .map((item: string) => item.trim());
-          console.log(materiauxCreation);
         } catch (error) {
           console.error("err:", error);
           return;

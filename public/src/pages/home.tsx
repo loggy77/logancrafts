@@ -54,7 +54,7 @@ export default function Home() {
       })
       .catch((err) => {
         Swal.fire("Les identifiant de connexion sont incorrect");
-        console.log(err);
+        console.error(err);
       })
       .finally(() => setLoginData(null));
   }, [loginData]);
