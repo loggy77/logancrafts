@@ -20,9 +20,24 @@ ChartJS.register(
   Legend
 );
 
-export default function Chart({text, month, labels, dataNumber}) {
+export default function Chart({ text, month, labels, dataNumber }) {
   const data = {
-    labels: month ? ["Janvier", "Fevrier", "Mars", "Avril", "Mai", "Juin", "Juillet", "Aout", "Septembre", "Octobre", "Novembre", "Decembre"] : labels,
+    labels: month
+      ? [
+          "Janvier",
+          "Fevrier",
+          "Mars",
+          "Avril",
+          "Mai",
+          "Juin",
+          "Juillet",
+          "Aout",
+          "Septembre",
+          "Octobre",
+          "Novembre",
+          "Decembre",
+        ]
+      : labels,
     datasets: [
       {
         backgroundColor: "rgba(75,192,192,0.4)",
@@ -43,6 +58,13 @@ export default function Chart({text, month, labels, dataNumber}) {
       },
       title: {
         display: false,
+      },
+    },
+    scales: {
+      y: {
+        ticks: {
+          stepSize: 2,
+        },
       },
     },
   };

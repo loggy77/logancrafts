@@ -66,6 +66,8 @@ export default function Dashboard() {
         </select>
         <p>Ajouter une image</p>
         <input id="file-input" class="swal2-file" type="file" accept="image/*">
+        <p>Ajouter plusieurs fois le meuble</p>
+        <input type="number" id="multiple-input" class="swal2-input" value="1" placeholder="Nombre de la récurrence" autofocus>
         `,
       focusConfirm: false,
       showCancelButton: true,
@@ -87,13 +89,17 @@ export default function Dashboard() {
         const fileInput = document.getElementById(
           "file-input"
         ) as HTMLInputElement;
+        const multipleInput = document.getElementById(
+          "multiple-input"
+        ) as HTMLInputElement;
 
         if (
           !textInput ||
           !multiCategory ||
           !multiMateriaux ||
           !textAreaInput ||
-          !fileInput
+          !fileInput ||
+          !multipleInput
         ) {
           return Swal.showValidationMessage(
             `Veuillez remplir tous les champs.`
@@ -102,6 +108,7 @@ export default function Dashboard() {
 
         const textValue = textInput.value;
         const textAreaValue = textAreaInput.value;
+        const multipleValue = multipleInput.value;
         const selectedValues = Array.from(multiMateriaux.selectedOptions).map(
           (option) => (option as HTMLOptionElement).value
         );
@@ -113,6 +120,7 @@ export default function Dashboard() {
           materiaux: selectedValues,
           category: multiCategory.value,
           fichier: file,
+          multiple: multipleValue,
         };
       },
     };
@@ -122,13 +130,13 @@ export default function Dashboard() {
         const session = localStorage.getItem("session");
 
         try {
-          const res = await axios.post("/meubles", result.value, {
+          await axios.post("/meubles", result.value, {
             headers: {
               Authorization: `Bearer ${session}`,
               "Content-Type": "multipart/form-data",
             },
           });
-          console.log(res);
+          window.location.reload();
         } catch (err) {
           if (err.response.data?.message) {
             Swal.fire(err.response.data?.message);
@@ -166,12 +174,13 @@ export default function Dashboard() {
 
     creations.forEach((creation) => {
       if (creation.materiaux) {
-        let materiauxCreation = [];
+        let materiauxCreation: string[] = [];
         try {
-          materiauxCreation = JSON.parse(creation.materiaux)
+          materiauxCreation = creation.materiaux
             .replace(/[\[\]"']/g, "")
             .split(",")
             .map((item: string) => item.trim());
+          console.log(materiauxCreation);
         } catch (error) {
           console.error("err:", error);
           return;
@@ -183,6 +192,7 @@ export default function Dashboard() {
         });
       }
     });
+
     const [keys, values] = Object.entries(materiauxCounts).reduce(
       ([keys, values], [key, value]) => [
         keys.concat(key),
@@ -211,6 +221,7 @@ export default function Dashboard() {
           const uniqueMateriaux = Array.from(
             new Set(materiauxQuery.map((item) => item.nom))
           );
+
           setCategories(uniqueCategories);
           setMateriaux(uniqueMateriaux);
           setCreations(category);
@@ -246,12 +257,14 @@ export default function Dashboard() {
 
     selectedMateriaux.forEach((materiaux) => {
       filteredCreations = filteredCreations.filter((creation) => {
-        const materiauxArray = JSON.parse(creation.materiaux);
+        const materiauxArray = creation.materiaux
+          .replace(/[\[\]"']/g, "")
+          .split(",")
+          .map((item: string) => item.trim());
         return materiauxArray.includes(materiaux);
       });
     });
 
-    // Mettre à jour copyCreations avec le résultat final filtré
     setCopyCreations(filteredCreations);
   }, [selectedCategories, selectedMateriaux, creations]);
 
@@ -274,21 +287,13 @@ export default function Dashboard() {
     return selectedMateriaux.includes(category);
   };
 
+  const logout = () => {
+    localStorage.clear();
+    window.location.href = "/";
+  };
+
   return (
     <div className="admin-container">
-      <Navbar bg="light" variant="light" expand="lg">
-        <Container>
-          <Navbar.Brand href="#home">Dernières créations</Navbar.Brand>
-          <Navbar.Toggle aria-controls="basic-navbar-nav" />
-          <Navbar.Collapse id="basic-navbar-nav">
-            <Nav className="me-auto">
-              <Nav.Link href="#users">Utilisateurs</Nav.Link>
-              <Nav.Link href="#settings">Paramètres</Nav.Link>
-            </Nav>
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
-
       <Container fluid className="mt-3">
         <Row>
           <Col md={3}>
@@ -296,26 +301,20 @@ export default function Dashboard() {
               <Card.Header>Menu latéral</Card.Header>
               <Card.Body>
                 <Nav className="flex-column">
-                  <Nav.Link href="#dashboard">Dernières créations</Nav.Link>
-                  <Nav.Link href="#analytics">Analytiques</Nav.Link>
-                  <Nav.Link href="#reports">Rapports</Nav.Link>
+                  <Nav.Link onClick={() => formAddMeuble(materiaux)}>
+                    Ajouter un meuble
+                  </Nav.Link>
+                  <Nav.Link href="#creations">Dernières créations</Nav.Link>
+                  <Nav.Link href="#charts">Statistiques</Nav.Link>
+                  <Nav.Link onClick={logout}>Déconnexion</Nav.Link>
                 </Nav>
               </Card.Body>
             </Card>
           </Col>
           <Col md={9}>
             <Card>
-              <Card.Header>Contenu principal</Card.Header>
               <Card.Body>
-                <h2>Ajouter un meuble</h2>
-                <Button
-                  variant={"primary"}
-                  className="me-2 mb-2"
-                  onClick={() => formAddMeuble(materiaux)}
-                >
-                  Ajouter un meuble
-                </Button>
-                <h2>Vos dernières créations</h2>
+                <h2 id="creations">Vos dernières créations</h2>
                 <div className="mb-3">
                   {categories.map((category, index) => (
                     <Button
@@ -350,37 +349,42 @@ export default function Dashboard() {
                   {copyCreations.map((data, index) => (
                     <article key={index} className="item">
                       <img
-                        src={data.plans}
+                        src={`uploads/${data.plans}`}
                         alt="meuble"
                         width={100}
                         height={100}
                       />
                       <p>{data.nom}</p>
                       <p>{data.category}</p>
+                      <p>
+                        {data.materiaux.replace(/[\[\]"']/g, " ").split(",")}
+                      </p>
                       <p>{data.description}</p>
                     </article>
                   ))}
                 </div>
+                <div id="charts">
+                  <Chart
+                    text="Total des meubles construits par mois"
+                    month={true}
+                    labels={false}
+                    dataNumber={totalMeublesDouzeMois}
+                  />
+                  <Chart
+                    text="Total d'utilisation des materiaux"
+                    month={false}
+                    labels={totalMateriauxStats[0]}
+                    dataNumber={totalMateriauxStats[1]}
+                  />
+                  <Chart
+                    text="Total de meubles construits"
+                    month={false}
+                    labels={["Armoire", "Etagère", "Total"]}
+                    dataNumber={meublesConstruitsStats}
+                  />
+                </div>{" "}
               </Card.Body>
             </Card>
-            <Chart
-              text="Total des meubles construits par mois"
-              month={true}
-              labels={false}
-              dataNumber={totalMeublesDouzeMois}
-            />
-            <Chart
-              text="Total d'utilisation des materiaux"
-              month={false}
-              labels={totalMateriauxStats[0]}
-              dataNumber={totalMateriauxStats[1]}
-            />
-            <Chart
-              text="Total de meubles construits"
-              month={false}
-              labels={["Armoire", "Etagère", "Total"]}
-              dataNumber={meublesConstruitsStats}
-            />
           </Col>
         </Row>
       </Container>

@@ -68,7 +68,8 @@ export default function Home() {
       html: `
           <input type="text" id="pseudo" class="swal2-input" placeholder="Pseudo" autocomplete="off">
           <input type="password" id="password" class="swal2-input" placeholder="Mot de Passe">
-        `,
+          <p>user: admin mot de passe: azerty123</p>        
+          `,
       confirmButtonText: "Connexion",
       focusConfirm: false,
       didOpen: () => {
@@ -112,7 +113,12 @@ export default function Home() {
             {creations &&
               creations.map((data, index) => (
                 <article key={index}>
-                  <img src={data.plans} alt="meuble" width={200} height={200} />
+                  <img
+                    src={`uploads/${data.plans}`}
+                    alt="meuble"
+                    width={200}
+                    height={200}
+                  />
                   <p>{data.nom}</p>
                   <p>{data.description}</p>
                 </article>

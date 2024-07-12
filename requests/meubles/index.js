@@ -7,7 +7,7 @@ import { postMeuble } from "./functions.js";
 
 // Configuration de multer
 const storage = multer.diskStorage({
-  destination: "uploads/",
+  destination: "public/public/uploads",
   filename: (req, file, cb) => {
     cb(null, Date.now() + path.extname(file.originalname));
   },
@@ -19,7 +19,7 @@ const upload = multer({
 });
 
 const fileTypeCheck = (req, res, next) => {
-  const allowedTypes = /jpeg|jpg|png|pdf/;
+  const allowedTypes = /jpeg|jpg/;
   const file = req.file;
   if (file) {
     const mimeType = allowedTypes.test(file.mimetype);
@@ -31,7 +31,7 @@ const fileTypeCheck = (req, res, next) => {
       return next();
     } else {
       return res.status(400).send({
-        message: "Seuls les fichiers JPEG, PNG et PDF sont autorisés.",
+        message: "Seuls les fichiers JPEG et JPG sont autorisés.",
       });
     }
   }
@@ -53,8 +53,8 @@ router.post("/", upload.single("fichier"), fileTypeCheck, async (req, res) => {
       return res.status(400).send({ message: "Session inconnue." });
     }
 
-    let { name, description, materiaux, category } = req.body;
-    if (!name || !description || !materiaux || !category) {
+    let { name, description, materiaux, category, multiple } = req.body;
+    if (!name || !description || !materiaux || !category || !multiple) {
       return res
         .status(400)
         .send({ message: "Tous les champs sont obligatoires." });
@@ -63,25 +63,10 @@ router.post("/", upload.single("fichier"), fileTypeCheck, async (req, res) => {
     materiaux = JSON.stringify(materiaux);
     materiaux = `"${materiaux}"`;
 
-    const filePath = req.file.path;
-    const fileData = fs.readFileSync(filePath);
-    const base64data = fileData.toString("base64");
-
-    fs.unlinkSync(filePath);
-
-    const image = `data:${req.file.mimetype};base64,${base64data}`;
-
-    const results = await postMeuble([
-      name,
-      category,
-      materiaux,
-      image,
-      description,
-    ]);
-    if (results?.affectedRows) {
-      return res.status(200).send({ message: "Meuble ajouté avec succès." });
+    for (let i = 0; i < multiple; i++) {
+      await postMeuble([name, category, materiaux, req.file.filename, description]);
     }
-    res.status(500).send({ message: "Erreur serveur." });
+    return res.status(200).send({ message: "Meuble ajouté avec succès." });
   } catch (e) {
     console.error(e);
     res.status(500).send({ message: "Erreur serveur." });
